@@ -1,0 +1,59 @@
+pipeline{
+    agent any
+    environment {
+        PATH = "$PATH:/opt/maven/bin"
+    }
+    stages{
+         stage('GetCode'){
+            steps{
+                git 'https://github.com/KavyaPallamreddy/Maven_project.git'
+            }
+         } 
+        
+       
+         stage('Compile'){
+            steps{
+                sh 'mvn compile'
+            }
+         }
+         stage('Test'){
+            steps{
+                sh 'mvn test-compile'
+            }
+         }
+       stage('Build'){
+            steps{
+                sh 'mvn clean package'
+            }
+         }
+         stage('deploy'){
+            steps{
+                sh 'mvn clean install'
+            }
+         }
+        stage('Upload Jar To Nexus'){
+            steps{
+                script{
+                         def mavenPom = readMavenPom file: 'pom.xml'
+                         def nexusRepoName = mavenPom.version.endsWith("SNAPSHOT") ? "simpleapp-snapshot" : "simpleapp-release"
+                           nexusArtifactUploader artifacts: [
+                                                       [
+                                                         artifactId: 'maven-project', 
+                                                         classifier: '', 
+                                                         file: "target/maven-project-${mavenPom.version}.jar",,
+                                                         type: 'jar'
+                                                        ]
+                                                      ], 
+                                                      credentialsId: 'admin', 
+                                                      groupId: 'com.prlcompany', 
+                                                      nexusUrl: '35.163.208.213:8081', 
+                                                      nexusVersion: 'nexus3', 
+                                                      protocol: 'http', 
+                                                      repository: nexusRepoName, 
+                                                      version: "${mavenPom.version}"
+                    }
+            }
+        }
+       
+    }
+}
